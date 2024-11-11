@@ -1,0 +1,44 @@
+name: Trigger auto deployment for ai-service
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ main ]
+    paths:
+    - '**'
+    - '.github/workflows/ai-service-AutoDeployTrigger-0ecf2c9e-80f2-4499-8810-5d722540c7a5.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:
+      
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AISERVICE_AZURE_CREDENTIALS }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}/App/backend-api
+          _dockerfilePathKey_: _dockerfilePath_
+          registryUrl: caf1801bb5e5acr.azurecr.io
+          registryUsername: ${{ secrets.AISERVICE_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.AISERVICE_REGISTRY_PASSWORD }}
+          containerAppName: ai-service
+          resourceGroup: rg-deploymentlab
+          imageToBuild: caf1801bb5e5acr.azurecr.io/ai-service:${{ github.sha }}
+          
+            
+
+     
+
