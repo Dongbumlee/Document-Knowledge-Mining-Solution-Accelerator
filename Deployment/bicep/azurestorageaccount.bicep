@@ -10,7 +10,7 @@ param skuName string = 'Standard_LRS'
 @description('The kind of the storage account')
 param kind string = 'StorageV2'
 
-resource storageAccount 'Microsoft.Storage/storageAccounts@2021-04-01' = {
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-04-01' = {
   name: storageAccountName
   location: location
   sku: {

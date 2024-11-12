@@ -33,7 +33,6 @@ module gs_azsearch 'bicep/azuresearch.bicep' = {
   }
 }
 
-
 // Create Container Registry
 module gs_containerregistry 'bicep/azurecontainerregistry.bicep' = {
   name: 'acr${resourceprefix_name}${resourceprefix}'
@@ -71,7 +70,6 @@ module gs_aks 'bicep/azurekubernetesservice.bicep' = {
 //   ]
 // }
 
-
 // Create Azure Cognitive Service
 module gs_azcognitiveservice 'bicep/azurecognitiveservice.bicep' = {
   name: 'cognitiveservice-${resourceprefix_name}${resourceprefix}'
@@ -102,15 +100,14 @@ module gs_openaiservicemodels_gpt4o 'bicep/azureopenaiservicemodel.bicep' = {
   name: 'gpt-4o-mini'
   params: {
     parentResourceName: gs_openaiservice.outputs.openAIServiceName
-    name:'gpt-4o-mini'
+    name: 'gpt-4o-mini'
     model: {
-        name: 'gpt-4o-mini'
-        version: '2024-07-18'
-        raiPolicyName: ''
-        capacity: 1
-        scaleType: 'Standard'
-      }
-    
+      name: 'gpt-4o-mini'
+      version: '2024-07-18'
+      raiPolicyName: ''
+      capacity: 1
+      scaleType: 'Standard'
+    }
   }
   dependsOn: [
     gs_openaiservice
@@ -122,18 +119,18 @@ module gs_openaiservicemodels_text_embedding 'bicep/azureopenaiservicemodel.bice
   name: 'text-embedding-large'
   params: {
     parentResourceName: gs_openaiservice.outputs.openAIServiceName
-    name:'text-embedding-large'
+    name: 'text-embedding-large'
     model: {
-        name: 'text-embedding-3-large'
-        version: '1'
-        raiPolicyName: ''
-        capacity: 1
-        scaleType: 'Standard'
-      }
+      name: 'text-embedding-3-large'
+      version: '1'
+      raiPolicyName: ''
+      capacity: 1
+      scaleType: 'Standard'
     }
-    dependsOn: [
-      gs_openaiservicemodels_gpt4o
-    ]  
+  }
+  dependsOn: [
+    gs_openaiservicemodels_gpt4o
+  ]
 }
 
 // Create Azure Cosmos DB Mongo
@@ -146,6 +143,111 @@ module gs_cosmosdb 'bicep/azurecosmosdb.bicep' = {
   }
 }
 
+// Get Deployed AI Service
+resource deployed_ai_service 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = {
+  scope: gs_resourcegroup
+  name: 'openaiservice-${resourceprefix_name}${resourceprefix}'
+}
+
+// Get Deployed Document Intelligence Service
+resource deployed_doc_intel_service 'Microsoft.CognitiveServices/accounts@2022-03-01' existing = {
+  scope: gs_resourcegroup
+  name: 'cognitiveservice-${resourceprefix_name}${resourceprefix}'
+}
+
+// Get Deployed Cosmos DB
+resource deployed_cosmosdb 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' existing = {
+  scope: gs_resourcegroup
+  name: 'cosmosdb-${resourceprefix_name}${resourceprefix}'
+}
+
+// Get Deployed Azure Search
+resource deployed_azsearch 'Microsoft.Search/searchServices@2023-11-01' existing = {
+  scope: gs_resourcegroup
+  name: 'search-${resourceprefix}'
+}
+
+// Get Deployed Azure Storage Account
+resource deployed_storageaccount 'Microsoft.Storage/storageAccounts@2023-04-01' existing = {
+  scope: gs_resourcegroup
+  name: 'blob${resourceprefix}'
+}
+
+// Get Azure Resource Keys -
+var keyValueNames = [
+  'Application:AIServices:GPT-4o-mini:Endpoint'
+  'Application:AIServices:GPT-4o-mini:Key'
+  'Application:AIServices:GPT-4o-mini:ModelName'
+  'Application:AIServices:GPT-4o:Endpoint'
+  'Application:AIServices:GPT-4o:Key'
+  'Application:AIServices:GPT-4o:ModelName'
+  'Application:AIServices:TextEmbedding:Endpoint'
+  'Application:AIServices:TextEmbedding:Key'
+  'Application:AIServices:TextEmbedding:ModelName'
+  'Application:Services:CognitiveService:DocumentIntelligence:APIKey'
+  'Application:Services:CognitiveService:DocumentIntelligence:Endpoint'
+  'Application:Services:KernelMemory:Endpoint'
+  'Application:Services:PersistentStorage:CosmosMongo:Collections:ChatHistory:Collection'
+  'Application:Services:PersistentStorage:CosmosMongo:Collections:ChatHistory:Database'
+  'Application:Services:PersistentStorage:CosmosMongo:Collections:DocumentManager:Collection'
+  'Application:Services:PersistentStorage:CosmosMongo:Collections:DocumentManager:Database'
+  'Application:Services:PersistentStorage:CosmosMongo:ConnectionString'
+  'Application:Services:AzureAISearch:APIKey'
+  'Application:Services:AzureAISearch:Endpoint'
+  'KernelMemory:Services:AzureAIDocIntel:APIKey'
+  'KernelMemory:Services:AzureAIDocIntel:Endpoint'
+  'KernelMemory:Services:AzureAISearch:APIKey'
+  'KernelMemory:Services:AzureAISearch:Endpoint'
+  'KernelMemory:Services:AzureBlobs:Account'
+  'KernelMemory:Services:AzureBlobs:ConnectionString'
+  'KernelMemory:Services:AzureBlobs:Container'
+  'KernelMemory:Services:AzureOpenAIEmbedding:APIKey'
+  'KernelMemory:Services:AzureOpenAIEmbedding:Deployment'
+  'KernelMemory:Services:AzureOpenAIEmbedding:Endpoint'
+  'KernelMemory:Services:AzureOpenAIText:APIKey'
+  'KernelMemory:Services:AzureOpenAIText:Deployment'
+  'KernelMemory:Services:AzureOpenAIText:Endpoint'
+  'KernelMemory:Services:AzureQueues:Account'
+  'KernelMemory:Services:AzureQueues:ConnectionString'
+]
+
+var keyValueValues = [
+  gs_openaiservice.outputs.openAIServiceEndpoint
+  deployed_ai_service.listKeys('2023-05-01').key1
+  gs_openaiservicemodels_gpt4o.outputs.deployedModelName
+  gs_openaiservice.outputs.openAIServiceEndpoint
+  deployed_ai_service.listKeys('2023-05-01').key1
+  gs_openaiservicemodels_gpt4o.outputs.deployedModelName
+  gs_openaiservice.outputs.openAIServiceEndpoint
+  deployed_ai_service.listKeys('2023-05-01').key1
+  gs_openaiservicemodels_text_embedding.outputs.deployedModelName
+  deployed_doc_intel_service.listKeys('2022-03-01').key1
+  gs_azcognitiveservice.outputs.cognitiveServiceEndpoint
+  'http://kernel-memmory'
+  'ChatHistory'
+  'DPS'
+  'Documents'
+  'DPS'
+  deployed_cosmosdb.listConnectionStrings('2024-05-15').connectionStrings[0].connectionString
+  deployed_azsearch.listAdminKeys('2023-11-01').primaryKey
+  'https://search-${resourceprefix_name}${resourceprefix}.search.windows.net'
+  deployed_doc_intel_service.listKeys('2022-03-01').key1
+  gs_azcognitiveservice.outputs.cognitiveServiceEndpoint
+  deployed_azsearch.listAdminKeys('2023-11-01').primaryKey
+  'https://search-${resourceprefix_name}${resourceprefix}.search.windows.net'
+  gs_storageaccount.outputs.storageAccountName
+  deployed_storageaccount.listKeys('2023-04-01').keys[0].value
+  'smemory'
+  deployed_ai_service.listKeys('2023-05-01').key1
+  gs_openaiservicemodels_text_embedding.outputs.deployedModelName
+  gs_openaiservice.outputs.openAIServiceEndpoint
+  deployed_ai_service.listKeys('2023-05-01').key1
+  gs_openaiservicemodels_gpt4o.outputs.deployedModelName
+  gs_openaiservice.outputs.openAIServiceEndpoint
+  gs_storageaccount.outputs.storageAccountName
+  deployed_storageaccount.listKeys('2023-04-01').keys[0].value
+]
+
 // Create Azure App Configuration
 module gs_appconfig 'bicep/azureappconfigservice.bicep' = {
   name: 'appconfig-${resourceprefix_name}${resourceprefix}'
@@ -153,39 +255,34 @@ module gs_appconfig 'bicep/azureappconfigservice.bicep' = {
   params: {
     appConfigName: 'appconfig-${resourceprefix_name}${resourceprefix}'
     location: deployment().location
+    keyvalueNames: keyValueNames
+    keyvalueValues: keyValueValues
   }
 }
+
+// Add Settings to App Configuration
 
 // return all resource names as a output
 output gs_resourcegroup_name string = 'rg-${resourceprefix_name}${resourceprefix}'
 output gs_storageaccount_name string = gs_storageaccount.outputs.storageAccountName
 output gs_azsearch_name string = gs_azsearch.outputs.searchServiceName
-
 output gs_aks_name string = gs_aks.outputs.createdAksName
 output gs_aks_serviceprincipal_id string = gs_aks.outputs.createdServicePrincipalId
-
 output gs_containerregistry_name string = gs_containerregistry.outputs.createdAcrName
-
 output gs_azcognitiveservice_name string = gs_azcognitiveservice.outputs.cognitiveServiceName
 output gs_azcognitiveservice_endpoint string = gs_azcognitiveservice.outputs.cognitiveServiceEndpoint
-
 output gs_openaiservice_name string = gs_openaiservice.outputs.openAIServiceName
 output gs_openaiservice_location string = gs_openaiservice.outputs.oopenAIServiceLocation
 output gs_openaiservice_endpoint string = gs_openaiservice.outputs.openAIServiceEndpoint
-
 output gs_openaiservicemodels_gpt4o_model_name string = gs_openaiservicemodels_gpt4o.outputs.deployedModelName
 output gs_openaiservicemodels_gpt4o_model_id string = gs_openaiservicemodels_gpt4o.outputs.deployedModelId
-
 output gs_openaiservicemodels_text_embedding_model_name string = gs_openaiservicemodels_text_embedding.outputs.deployedModelName
 output gs_openaiservicemodels_text_embedding_model_id string = gs_openaiservicemodels_text_embedding.outputs.deployedModelId
 output gs_cosmosdb_name string = gs_cosmosdb.outputs.cosmosDbAccountName
-
 output gs_appconfig_id string = gs_appconfig.outputs.appConfigId
 output gs_appconfig_endpoint string = gs_appconfig.outputs.appConfigEndpoint
 
 // return acr url
 output gs_containerregistry_endpoint string = gs_containerregistry.outputs.acrEndpoint
-
 //return resourcegroup resource ID
 output gs_resourcegroup_id string = gs_resourcegroup.id
-

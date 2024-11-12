@@ -389,6 +389,8 @@ try {
     # Display the deployment result
     DisplayResult($resultJson)
 
+    exit 1
+
     ###############################################################
     # Step 2 : Get Secrets from Azure resources
     Show-Banner -Title "Step 2 : Get Secrets from Azure resources"
