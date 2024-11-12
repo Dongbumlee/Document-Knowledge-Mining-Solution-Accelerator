@@ -47,7 +47,7 @@ function PromptForParameters {
         [string]$subscriptionID,
         [string]$location,
         [string]$modelLocation,
-        [string]$email
+        [string]$githubRepoUrl
     )
 
     Clear-Host
@@ -90,8 +90,8 @@ function PromptForParameters {
         $modelLocation = Read-Host -Prompt '> '
     }
 
-    if (-not $email) {
-        Write-Host "Please enter your email address for certificate management" -ForegroundColor Cyan
+    if (-not $githubRepoUrl) {
+        Write-Host "Please enter your GitHub repository Url" -ForegroundColor Cyan
         $email = Read-Host -Prompt '> '
     }
 
@@ -99,7 +99,7 @@ function PromptForParameters {
         subscriptionID = $subscriptionID
         location = $location
         modelLocation = $modelLocation
-        email = $email
+        email = $githubRepoUrl
     }
 }
 
@@ -109,7 +109,8 @@ $params = PromptForParameters -subscriptionID $subscriptionID -location $locatio
 $subscriptionID = $params.subscriptionID
 $location = $params.location
 $modelLocation = $params.modelLocation
-$email = $params.email
+$email = ""
+$githubRepoUrl = $params.githubRepoUrl
 
 function LoginAzure([string]$subscriptionID) {
         Write-Host "Log in to Azure.....`r`n" -ForegroundColor Yellow
@@ -389,7 +390,51 @@ try {
     # Display the deployment result
     DisplayResult($resultJson)
 
-    exit 1
+    #exit 1
+
+    ###############################################################
+    # Step 1-1 : Deploy Azure Container App with GitHub Actions
+    Show-Banner -Title "Step 2 : Deploy Azure Container Apps with GitHub"
+    ###############################################################
+
+    # 1. Deploy Kernel Memory Service
+    az containerapp up --name kernel-memory `
+                       --repo $githubRepoUrl `
+                       --branch deploymentUpdate `
+                       --context-path .\App\kernel-memory `
+                       --ingress internal --environment env-dkm `
+                       --resource-group $deploymentResult.ResourceGroupName `
+                       --location $location `
+                       --env-vars "ConnectionStrings:AppConfig=$($deploymentResult.AzAppConfigEndpoint)" `
+
+    # 2. Deploy AI Service
+    az containerapp up --name ai-service `
+                       --repo $githubRepoUrl `
+                       --branch deploymentUpdate `
+                       --context-path .\App\backend-api `
+                       --ingress external --environment env-dkm `
+                       --resource-group $deploymentResult.ResourceGroupName `
+                       --location $location `
+                       --target-port 80 `
+                       --env-vars "ConnectionStrings:AppConfig=$($deploymentResult.AzAppConfigEndpoint)" `
+
+
+    # Get ai-service fqdn
+    $aiserviceFqdn = az containerapp show --name ai-service --resource-group $deploymentResult.ResourceGroupName --query "fqdn" -o tsv
+
+    # 3. Deploy App Front
+    az containerapp up --name app-front `
+                       --repo $githubRepoUrl `
+                       --branch deploymentUpdate `
+                       --ingress external --environment env-dkm `
+                       --resource-group $deploymentResult.ResourceGroupName `
+                       --location $location `
+                       --target-port 80
+                       --target-port 80 `
+                       --env-vars "DISABLE_AUTH=true VITE_API_ENDPOINT=$($aiserviceFqdn)" `
+                       
+
+
 
     ###############################################################
     # Step 2 : Get Secrets from Azure resources
