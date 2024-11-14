@@ -3,7 +3,7 @@ name: Bicep Deployment (Create)
 on:
     push:
         branches:
-            - main
+            - deploymentUpdate
 permissions:
     contents: read
     id-token: write
