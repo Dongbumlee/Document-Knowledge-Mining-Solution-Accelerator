@@ -141,7 +141,8 @@ function DeployAzureResources([string]$location, [string]$modelLocation) {
         }
         # Proceed with the actual deployment
         Write-Host "Proceeding with Deployment..." -ForegroundColor Yellow
-        $deploymentResult = az deployment sub create --template-file .\main.bicep --location $location --name $deploymentName --parameters modeldatacenter=$modelLocation
+
+        $deploymentResult = az deployment sub create --template-file .\main.bicep --location $location --name $deploymentName --parameters modeldatacenter=$modelLocation --debug
 
         if ($LASTEXITCODE -ne 0) {
             Write-Host "Deployment failed. Stopping execution." -ForegroundColor Red
@@ -429,12 +430,12 @@ try {
                        --ingress external --environment env-dkm `
                        --resource-group $deploymentResult.ResourceGroupName `
                        --location $location `
-                       --target-port 80
                        --target-port 80 `
                        --env-vars "DISABLE_AUTH=true VITE_API_ENDPOINT=$($aiserviceFqdn)" `
                        
 
 
+    exit 1
 
     ###############################################################
     # Step 2 : Get Secrets from Azure resources

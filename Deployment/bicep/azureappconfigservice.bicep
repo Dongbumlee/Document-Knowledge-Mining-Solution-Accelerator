@@ -1,12 +1,11 @@
 param appConfigName string
-param location string = resourceGroup().location
 param skuName string = 'Standard'
 param keyvalueNames array
 param keyvalueValues array
 
 resource appConfig 'Microsoft.AppConfiguration/configurationStores@2024-05-01' = {
   name: appConfigName
-  location: location
+  location: resourceGroup().location
   sku: {
     name: skuName
   }

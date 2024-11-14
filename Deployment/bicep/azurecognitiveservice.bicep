@@ -12,6 +12,7 @@ resource cognitiveService 'Microsoft.CognitiveServices/accounts@2022-03-01' = {
   }
   kind: 'FormRecognizer'
   properties: {
+    restore: false
   }
 }
 

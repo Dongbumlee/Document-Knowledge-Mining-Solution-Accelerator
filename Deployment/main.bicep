@@ -33,28 +33,28 @@ module gs_azsearch 'bicep/azuresearch.bicep' = {
   }
 }
 
-// Create Container Registry
-module gs_containerregistry 'bicep/azurecontainerregistry.bicep' = {
-  name: 'acr${resourceprefix_name}${resourceprefix}'
-  scope: gs_resourcegroup
-  params: {
-    acrName: 'acr${resourceprefix_name}${resourceprefix}'
-    location: deployment().location
-  }
-}
+// // Create Container Registry
+// module gs_containerregistry 'bicep/azurecontainerregistry.bicep' = {
+//   name: 'acr${resourceprefix_name}${resourceprefix}'
+//   scope: gs_resourcegroup
+//   params: {
+//     acrName: 'acr${resourceprefix_name}${resourceprefix}'
+//     location: deployment().location
+//   }
+// }
 
-// Create AKS Cluster
-module gs_aks 'bicep/azurekubernetesservice.bicep' = {
-  name: 'aks-${resourceprefix_name}${resourceprefix}'
-  scope: gs_resourcegroup
-  params: {
-    aksName: 'aks-${resourceprefix_name}${resourceprefix}'
-    location: deployment().location
-  }
-  dependsOn: [
-    gs_containerregistry
-  ]
-}
+// // Create AKS Cluster
+// module gs_aks 'bicep/azurekubernetesservice.bicep' = {
+//   name: 'aks-${resourceprefix_name}${resourceprefix}'
+//   scope: gs_resourcegroup
+//   params: {
+//     aksName: 'aks-${resourceprefix_name}${resourceprefix}'
+//     location: deployment().location
+//   }
+//   dependsOn: [
+//     gs_containerregistry
+//   ]
+// }
 
 // Assign ACR Pull role to AKS
 // module gs_roleassignacrpull 'bicep/azureroleassignacrpull.bicep' = {
@@ -143,33 +143,58 @@ module gs_cosmosdb 'bicep/azurecosmosdb.bicep' = {
   }
 }
 
+// Create Azure App Configuration
+module gs_appconfig 'bicep/azureappconfigservice.bicep' = {
+  name: 'appconfig-${resourceprefix_name}${resourceprefix}'
+  scope: gs_resourcegroup
+  params: {
+    appConfigName: 'appconfig-${resourceprefix_name}${resourceprefix}'
+    keyvalueNames: keyValueNames
+    keyvalueValues: keyValueValues
+  }
+  dependsOn: [
+    gs_openaiservice
+    gs_openaiservicemodels_gpt4o
+    gs_openaiservicemodels_text_embedding
+    deployed_ai_service
+    deployed_doc_intel_service
+    deployed_cosmosdb
+    deployed_azsearch
+    deployed_storageaccount
+  ]
+}
+
+resource deployed_resourcegroup 'Microsoft.Resources/resourceGroups@2021-04-01' existing = {
+  name: gs_resourcegroup.name
+}
+
 // Get Deployed AI Service
 resource deployed_ai_service 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = {
-  scope: gs_resourcegroup
+  scope: deployed_resourcegroup
   name: 'openaiservice-${resourceprefix_name}${resourceprefix}'
 }
 
 // Get Deployed Document Intelligence Service
 resource deployed_doc_intel_service 'Microsoft.CognitiveServices/accounts@2022-03-01' existing = {
-  scope: gs_resourcegroup
+  scope: deployed_resourcegroup
   name: 'cognitiveservice-${resourceprefix_name}${resourceprefix}'
 }
 
 // Get Deployed Cosmos DB
 resource deployed_cosmosdb 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' existing = {
-  scope: gs_resourcegroup
+  scope: deployed_resourcegroup
   name: 'cosmosdb-${resourceprefix_name}${resourceprefix}'
 }
 
 // Get Deployed Azure Search
 resource deployed_azsearch 'Microsoft.Search/searchServices@2023-11-01' existing = {
-  scope: gs_resourcegroup
+  scope: deployed_resourcegroup
   name: 'search-${resourceprefix}'
 }
 
 // Get Deployed Azure Storage Account
 resource deployed_storageaccount 'Microsoft.Storage/storageAccounts@2023-04-01' existing = {
-  scope: gs_resourcegroup
+  scope: deployed_resourcegroup
   name: 'blob${resourceprefix}'
 }
 
@@ -223,7 +248,7 @@ var keyValueValues = [
   gs_openaiservicemodels_text_embedding.outputs.deployedModelName
   deployed_doc_intel_service.listKeys('2022-03-01').key1
   gs_azcognitiveservice.outputs.cognitiveServiceEndpoint
-  'http://kernel-memmory'
+  'http://kernel-memory'
   'ChatHistory'
   'DPS'
   'Documents'
@@ -248,27 +273,15 @@ var keyValueValues = [
   deployed_storageaccount.listKeys('2023-04-01').keys[0].value
 ]
 
-// Create Azure App Configuration
-module gs_appconfig 'bicep/azureappconfigservice.bicep' = {
-  name: 'appconfig-${resourceprefix_name}${resourceprefix}'
-  scope: gs_resourcegroup
-  params: {
-    appConfigName: 'appconfig-${resourceprefix_name}${resourceprefix}'
-    location: deployment().location
-    keyvalueNames: keyValueNames
-    keyvalueValues: keyValueValues
-  }
-}
-
 // Add Settings to App Configuration
 
 // return all resource names as a output
 output gs_resourcegroup_name string = 'rg-${resourceprefix_name}${resourceprefix}'
 output gs_storageaccount_name string = gs_storageaccount.outputs.storageAccountName
 output gs_azsearch_name string = gs_azsearch.outputs.searchServiceName
-output gs_aks_name string = gs_aks.outputs.createdAksName
-output gs_aks_serviceprincipal_id string = gs_aks.outputs.createdServicePrincipalId
-output gs_containerregistry_name string = gs_containerregistry.outputs.createdAcrName
+// output gs_aks_name string = gs_aks.outputs.createdAksName
+// output gs_aks_serviceprincipal_id string = gs_aks.outputs.createdServicePrincipalId
+// output gs_containerregistry_name string = gs_containerregistry.outputs.createdAcrName
 output gs_azcognitiveservice_name string = gs_azcognitiveservice.outputs.cognitiveServiceName
 output gs_azcognitiveservice_endpoint string = gs_azcognitiveservice.outputs.cognitiveServiceEndpoint
 output gs_openaiservice_name string = gs_openaiservice.outputs.openAIServiceName
@@ -283,6 +296,6 @@ output gs_appconfig_id string = gs_appconfig.outputs.appConfigId
 output gs_appconfig_endpoint string = gs_appconfig.outputs.appConfigEndpoint
 
 // return acr url
-output gs_containerregistry_endpoint string = gs_containerregistry.outputs.acrEndpoint
+// output gs_containerregistry_endpoint string = gs_containerregistry.outputs.acrEndpoint
 //return resourcegroup resource ID
 output gs_resourcegroup_id string = gs_resourcegroup.id

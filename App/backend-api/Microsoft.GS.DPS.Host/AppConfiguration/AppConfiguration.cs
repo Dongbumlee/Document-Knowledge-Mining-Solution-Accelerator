@@ -16,7 +16,8 @@ namespace Microsoft.GS.DPSHost.AppConfiguration
             //Read AppConfiguration with managed Identity
             builder.Configuration.AddAzureAppConfiguration(options =>
             {
-                options.Connect(new Uri(builder.Configuration["ConnectionStrings:AppConfig"]), new DefaultAzureCredential());
+                var appConfigUrl = Environment.GetEnvironmentVariable("ConnectionStrings:AppConfig");
+                options.Connect(new Uri(appConfigUrl), new DefaultAzureCredential());
             });
 
             //Read ServiceConfiguration

@@ -83,11 +83,14 @@ internal static class Program
         appBuilder.Configuration.AddKMConfigurationSources();
 
         // Add Configuration from App Configuration Service
-        appBuilder.Configuration.AddAzureAppConfiguration(options =>
-        {
-            options.Connect(new Uri(appBuilder.Configuration["ConnectionStrings:AppConfig"]), new DefaultAzureCredential());
-        });
 
+        if (Environment.GetEnvironmentVariable("ConnectionStrings:AppConfig") != null)
+        {
+            appBuilder.Configuration.AddAzureAppConfiguration(options =>
+            {
+                options.Connect(new Uri(Environment.GetEnvironmentVariable("ConnectionStrings:AppConfig")), new DefaultAzureCredential());
+            });
+        } 
 
         // Read KM settings, needed before building the app.
         KernelMemoryConfig config = appBuilder.Configuration.GetSection("KernelMemory").Get<KernelMemoryConfig>()

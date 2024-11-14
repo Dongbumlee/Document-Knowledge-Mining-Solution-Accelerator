@@ -1,0 +1,45 @@
+name: Bicep Deployment (Create)
+
+on:
+    push:
+        branches:
+            - main
+permissions:
+    contents: read
+    id-token: write
+
+jobs:
+    deployment:
+        name: Deployment
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+
+            - name: Login
+              uses: azure/login@v1
+              with:
+                client-id: ${{ env.secrets.AZURE_CLIENT_ID }}
+                tenant-id: ${{ env.secrets.AZURE_TENANT_ID }}
+                subscription-id: ${{ env.secrets.AZURE_SUBSCRIPTION_ID }}
+
+            - name: Azure CLI script
+              uses: azure/cli@v2
+              with:
+                azcliversion: latest
+                inlineScript: |
+                  az account show
+                  # You can write your Azure CLI inline scripts here.
+
+            # - name: Create
+            #   uses: Azure/bicep-deploy@v1
+            #   with:
+            #         type: deployment
+            #         operation: create
+            #         name: Development
+            #         scope: resourceGroup
+            #         subscription-id: ${{ env.secrets.AZURE_SUBSCRIPTION_ID }}
+            #         resource-group-name: example
+            #         template-file: ./main.bicep
+            #         parameters: ./main.parameters.json
